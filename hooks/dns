@@ -1,0 +1,27 @@
+#!/bin/sh
+
+PREREQ=""
+
+prereqs()
+{
+	echo "$PREREQ"
+}
+
+case $1 in
+prereqs)
+	prereqs
+	exit 0
+	;;
+esac
+
+. /usr/share/initramfs-tools/scripts/functions
+. /usr/share/initramfs-tools/hook-functions
+
+copy_exec /lib/x86_64-linux-gnu/libnss_compat.so.2
+copy_exec /lib/x86_64-linux-gnu/libnss_dns.so.2
+copy_exec /lib/x86_64-linux-gnu/libnss_files.so.2
+copy_exec /lib/x86_64-linux-gnu/libnss_nis.so.2
+copy_exec /lib/x86_64-linux-gnu/libpam.so.0
+copy_exec /lib/x86_64-linux-gnu/libresolv.so.2
+
+exit 0
