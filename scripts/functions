@@ -214,33 +214,37 @@ configure_networking()
 			[ -e "$x" ] && break 2
 		done
 
-		case ${IP} in
-		none|off)
-			# Do nothing
-			;;
-		""|on|any)
-			# Bring up device
-			ipconfig -t ${ROUNDTTT} "${DEVICE}"
-			;;
-		dhcp|bootp|rarp|both)
-			ipconfig -t ${ROUNDTTT} -c ${IP} -d "${DEVICE}"
-			;;
-		*)
-			ipconfig -t ${ROUNDTTT} -d $IP
+		if [ -e "/scripts/${IP}" ]; then
+			. "/scripts/${IP}"
+		else
+			case ${IP} in
+			none|off)
+				# Do nothing
+				;;
+			""|on|any)
+				# Bring up device
+				ipconfig -t ${ROUNDTTT} "${DEVICE}"
+				;;
+			dhcp|bootp|rarp|both)
+				ipconfig -t ${ROUNDTTT} -c ${IP} -d "${DEVICE}"
+				;;
+			*)
+				ipconfig -t ${ROUNDTTT} -d $IP
 
-			# grab device entry from ip option
-			NEW_DEVICE=${IP#*:*:*:*:*:*}
-			if [ "${NEW_DEVICE}" != "${IP}" ]; then
-				NEW_DEVICE=${NEW_DEVICE%%:*}
-			else
-				# wrong parse, possibly only a partial string
-				NEW_DEVICE=
-			fi
-			if [ -n "${NEW_DEVICE}" ]; then
-				DEVICE="${NEW_DEVICE}"
-			fi
-			;;
-		esac
+				# grab device entry from ip option
+				NEW_DEVICE=${IP#*:*:*:*:*:*}
+				if [ "${NEW_DEVICE}" != "${IP}" ]; then
+					NEW_DEVICE=${NEW_DEVICE%%:*}
+				else
+					# wrong parse, possibly only a partial string
+					NEW_DEVICE=
+				fi
+				if [ -n "${NEW_DEVICE}" ]; then
+					DEVICE="${NEW_DEVICE}"
+				fi
+				;;
+			esac
+		fi
 	done
 
 	# source ipconfig output
