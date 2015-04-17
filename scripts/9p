@@ -1,0 +1,99 @@
+# 9P filesystem mounting			-*- shell-script -*-
+
+# FIXME This needs error checking
+
+v9p_top()
+{
+	if [ "${v9p_top_used}" != "yes" ]; then
+		[ "$quiet" != "y" ] && log_begin_msg "Running /scripts/9p-top"
+		run_scripts /scripts/9p-top
+		[ "$quiet" != "y" ] && log_end_msg
+	fi
+	v9p_top_used=yes
+}
+
+v9p_premount()
+{
+	if [ "${v9p_premount_used}" != "yes" ]; then
+		[ "$quiet" != "y" ] && log_begin_msg "Running /scripts/9p-premount"
+		run_scripts /scripts/9p-premount
+		[ "$quiet" != "y" ] && log_end_msg
+	fi
+	v9p_premount_used=yes
+}
+
+v9p_bottom()
+{
+	if [ "${v9p_premount_used}" = "yes" ] || [ "${v9p_top_used}" = "yes" ]; then
+		[ "$quiet" != "y" ] && log_begin_msg "Running /scripts/9p-bottom"
+		run_scripts /scripts/9p-bottom
+		[ "$quiet" != "y" ] && log_end_msg
+	fi
+	v9p_premount_used=no
+	v9p_top_used=no
+}
+
+# parse v9p bootargs and mount 9p
+v9p_mount_root_impl()
+{
+	configure_networking
+
+	if [ ${readonly} = y ]; then
+		roflag="-o ro"
+	else
+		roflag="-o rw"
+	fi
+
+	echo root:x:0:0:root:/root:/bin/bash > /etc/passwd
+	mount -n -t diod ${roflag} ${ROOTFLAGS} ${ROOT} ${rootmnt}
+}
+
+# V9P root mounting
+v9p_mount_root()
+{
+	v9p_top
+
+	modprobe 9p
+	# For DHCP
+	modprobe af_packet
+
+	wait_for_udev 10
+
+	# Default delay is around 180s
+	delay=${ROOTDELAY:-180}
+
+	# loop until v9pmount succeeds
+	v9p_mount_root_impl
+	v9p_retry_count=0
+	while [ ${v9p_retry_count} -lt ${delay} ] \
+		&& ! chroot "${rootmnt}" test -x "${init}" ; do
+		[ "$quiet" != "y" ] && log_begin_msg "Retrying 9p mount"
+		/bin/sleep 1
+		v9p_mount_root_impl
+		v9p_retry_count=$(( ${v9p_retry_count} + 1 ))
+		[ "$quiet" != "y" ] && log_end_msg
+	done
+}
+
+mountroot()
+{
+	v9p_mount_root
+}
+
+mount_top()
+{
+	# Note, also called directly in case it's overridden.
+	v9p_top
+}
+
+mount_premount()
+{
+	# Note, also called directly in case it's overridden.
+	v9p_premount
+}
+
+mount_bottom()
+{
+	# Note, also called directly in case it's overridden.
+	v9p_bottom
+}
