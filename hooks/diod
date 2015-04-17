@@ -1,6 +1,6 @@
 #!/bin/sh
 
-PREREQ="dns dhclient"
+PREREQ="dns dhclient pam"
 
 prereqs()
 {
